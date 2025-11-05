@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const gujaratCities = [
   "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", 
@@ -14,6 +15,7 @@ const gujaratCities = [
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signup, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -21,6 +23,12 @@ const Signup = () => {
     city: "",
     agreeToTerms: false,
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/home");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +43,7 @@ const Signup = () => {
       return;
     }
 
-    // Store user data in localStorage (temporary)
-    localStorage.setItem("user", JSON.stringify({
-      ...formData,
-      role: "user"
-    }));
-
+    signup(formData);
     toast.success("Account created successfully!");
     navigate("/home");
   };

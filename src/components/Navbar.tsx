@@ -1,10 +1,20 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import logoSeal from "@/assets/logo-seal.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { User, LogOut, ShoppingCart, LayoutDashboard } from "lucide-react";
 
 export const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b-2 border-border shadow-sm">
@@ -71,18 +81,51 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons / User Menu */}
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login" className="font-grotesk uppercase text-sm">
-                Login
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/signup" className="font-grotesk uppercase text-sm">
-                Sign Up
-              </Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/cart" className="font-grotesk uppercase text-sm flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Cart
+                  </Link>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="font-grotesk uppercase text-sm flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {user?.fullName || "Account"}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="cursor-pointer flex items-center gap-2">
+                        <LayoutDashboard className="h-4 w-4" />
+                        My Auctions
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer flex items-center gap-2 text-destructive">
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/login" className="font-grotesk uppercase text-sm">
+                    Login
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/signup" className="font-grotesk uppercase text-sm">
+                    Sign Up
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,44 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/home");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Admin login
-    if (formData.email === "admin@gmail.com" && formData.password === "admin123") {
-      localStorage.setItem("user", JSON.stringify({
-        email: formData.email,
-        role: "admin",
-        fullName: "Admin User"
-      }));
-      toast.success("Welcome, Admin!");
-      navigate("/admin");
-      return;
+    const success = login(formData.email, formData.password);
+    if (success) {
+      toast.success("Login successful!");
+      navigate("/home");
+    } else {
+      toast.error("Invalid credentials");
     }
-
-    // Regular user login (check localStorage)
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.email === formData.email && user.password === formData.password) {
-        toast.success("Login successful!");
-        navigate("/home");
-        return;
-      }
-    }
-
-    toast.error("Invalid credentials");
   };
 
   return (
