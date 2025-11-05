@@ -183,9 +183,7 @@ const Auctions = () => {
                   <div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="paused" checked={showPaused} onCheckedChange={checked => setShowPaused(checked as boolean)} />
-                      <label htmlFor="paused" className="text-sm font-sans cursor-pointer">
-                        ⏸️ Show only paused
-                      </label>
+                      <label htmlFor="paused" className="text-sm font-sans cursor-pointer">Show only paused</label>
                     </div>
                   </div>
 
