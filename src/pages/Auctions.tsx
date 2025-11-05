@@ -11,12 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import auctionCar from "@/assets/auction-car-1.jpg";
 import auctionBike from "@/assets/auction-bike-1.jpg";
 import auctionProperty from "@/assets/auction-property-1.jpg";
-
-const gujaratCities = [
-  "All Cities", "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", 
-  "Gandhinagar", "Jamnagar", "Junagadh", "Navsari", "Valsad"
-];
-
+const gujaratCities = ["All Cities", "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Gandhinagar", "Jamnagar", "Junagadh", "Navsari", "Valsad"];
 const Auctions = () => {
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [priceRange, setPriceRange] = useState([0, 10000000]);
@@ -25,73 +20,67 @@ const Auctions = () => {
     fourWheeler: false,
     heavyVehicle: false,
     property: false,
-    antiques: false,
+    antiques: false
   });
   const [showPaused, setShowPaused] = useState(false);
   const [sortBy, setSortBy] = useState("bidders_desc");
 
   // Mock auction data
-  const allAuctions = [
-    {
-      id: "1",
-      title: "Maruti Swift VXI 2018",
-      image: auctionCar,
-      basePrice: 120000,
-      bidders: 23,
-      timeRemaining: "2d 14h",
-      category: "Four Wheeler",
-    },
-    {
-      id: "2",
-      title: "Royal Enfield Classic 350",
-      image: auctionBike,
-      basePrice: 85000,
-      bidders: 18,
-      timeRemaining: "1d 8h",
-      category: "Two Wheeler",
-    },
-    {
-      id: "3",
-      title: "2BHK Apartment Ahmedabad",
-      image: auctionProperty,
-      basePrice: 2500000,
-      bidders: 31,
-      timeRemaining: "3d 2h",
-      category: "Property",
-    },
-    {
-      id: "4",
-      title: "Honda City 2019",
-      image: auctionCar,
-      basePrice: 450000,
-      bidders: 15,
-      timeRemaining: "6h 23m",
-      category: "Four Wheeler",
-    },
-    {
-      id: "5",
-      title: "Bajaj Pulsar NS200",
-      image: auctionBike,
-      basePrice: 65000,
-      bidders: 12,
-      timeRemaining: "12h 45m",
-      category: "Two Wheeler",
-    },
-    {
-      id: "6",
-      title: "Commercial Shop Surat",
-      image: auctionProperty,
-      basePrice: 1800000,
-      bidders: 9,
-      timeRemaining: "18h 15m",
-      category: "Property",
-    },
-  ];
-
+  const allAuctions = [{
+    id: "1",
+    title: "Maruti Swift VXI 2018",
+    image: auctionCar,
+    basePrice: 120000,
+    bidders: 23,
+    timeRemaining: "2d 14h",
+    category: "Four Wheeler"
+  }, {
+    id: "2",
+    title: "Royal Enfield Classic 350",
+    image: auctionBike,
+    basePrice: 85000,
+    bidders: 18,
+    timeRemaining: "1d 8h",
+    category: "Two Wheeler"
+  }, {
+    id: "3",
+    title: "2BHK Apartment Ahmedabad",
+    image: auctionProperty,
+    basePrice: 2500000,
+    bidders: 31,
+    timeRemaining: "3d 2h",
+    category: "Property"
+  }, {
+    id: "4",
+    title: "Honda City 2019",
+    image: auctionCar,
+    basePrice: 450000,
+    bidders: 15,
+    timeRemaining: "6h 23m",
+    category: "Four Wheeler"
+  }, {
+    id: "5",
+    title: "Bajaj Pulsar NS200",
+    image: auctionBike,
+    basePrice: 65000,
+    bidders: 12,
+    timeRemaining: "12h 45m",
+    category: "Two Wheeler"
+  }, {
+    id: "6",
+    title: "Commercial Shop Surat",
+    image: auctionProperty,
+    basePrice: 1800000,
+    bidders: 9,
+    timeRemaining: "18h 15m",
+    category: "Property"
+  }];
   const handleCategoryChange = (category: keyof typeof categories) => {
-    setCategories({ ...categories, [category]: !categories[category] });
+    setCategories({
+      ...categories,
+      [category]: !categories[category]
+    });
   };
-
   const clearFilters = () => {
     setSelectedCity("All Cities");
     setPriceRange([0, 10000000]);
@@ -100,13 +89,11 @@ const Auctions = () => {
       fourWheeler: false,
       heavyVehicle: false,
       property: false,
-      antiques: false,
+      antiques: false
     });
     setShowPaused(false);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <div className="flex-1 bg-background">
@@ -125,9 +112,7 @@ const Auctions = () => {
             <aside className="lg:col-span-1">
               <div className="bg-secondary border-2 border-border rounded-md p-6 sticky top-20">
                 <div className="mb-6">
-                  <h2 className="font-courier font-bold text-xl uppercase tracking-wider mb-1">
-                    🔍 Filter Auctions
-                  </h2>
+                  <h2 className="font-courier font-bold text-xl uppercase tracking-wider mb-1">FILTER AUCTIONS</h2>
                   <div className="h-0.5 w-24 bg-accent" />
                 </div>
 
@@ -140,11 +125,9 @@ const Auctions = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {gujaratCities.map((city) => (
-                          <SelectItem key={city} value={city}>
+                        {gujaratCities.map(city => <SelectItem key={city} value={city}>
                             {city}
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -152,13 +135,7 @@ const Auctions = () => {
                   {/* Price Range */}
                   <div>
                     <Label className="font-sans font-semibold mb-3 block">💰 Price Range</Label>
-                    <Slider
-                      value={priceRange}
-                      onValueChange={setPriceRange}
-                      max={10000000}
-                      step={50000}
-                      className="mb-3"
-                    />
+                    <Slider value={priceRange} onValueChange={setPriceRange} max={10000000} step={50000} className="mb-3" />
                     <div className="flex justify-between text-xs font-sans text-foreground/70">
                       <span>₹{priceRange[0].toLocaleString("en-IN")}</span>
                       <span>₹{priceRange[1].toLocaleString("en-IN")}</span>
@@ -170,51 +147,31 @@ const Auctions = () => {
                     <Label className="font-sans font-semibold mb-3 block">📂 Category</Label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="twoWheeler"
-                          checked={categories.twoWheeler}
-                          onCheckedChange={() => handleCategoryChange("twoWheeler")}
-                        />
+                        <Checkbox id="twoWheeler" checked={categories.twoWheeler} onCheckedChange={() => handleCategoryChange("twoWheeler")} />
                         <label htmlFor="twoWheeler" className="text-sm font-sans cursor-pointer">
                           Two Wheeler
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="fourWheeler"
-                          checked={categories.fourWheeler}
-                          onCheckedChange={() => handleCategoryChange("fourWheeler")}
-                        />
+                        <Checkbox id="fourWheeler" checked={categories.fourWheeler} onCheckedChange={() => handleCategoryChange("fourWheeler")} />
                         <label htmlFor="fourWheeler" className="text-sm font-sans cursor-pointer">
                           Four Wheeler
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="heavyVehicle"
-                          checked={categories.heavyVehicle}
-                          onCheckedChange={() => handleCategoryChange("heavyVehicle")}
-                        />
+                        <Checkbox id="heavyVehicle" checked={categories.heavyVehicle} onCheckedChange={() => handleCategoryChange("heavyVehicle")} />
                         <label htmlFor="heavyVehicle" className="text-sm font-sans cursor-pointer">
                           Heavy Vehicle
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="property"
-                          checked={categories.property}
-                          onCheckedChange={() => handleCategoryChange("property")}
-                        />
+                        <Checkbox id="property" checked={categories.property} onCheckedChange={() => handleCategoryChange("property")} />
                         <label htmlFor="property" className="text-sm font-sans cursor-pointer">
                           Property
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="antiques"
-                          checked={categories.antiques}
-                          onCheckedChange={() => handleCategoryChange("antiques")}
-                        />
+                        <Checkbox id="antiques" checked={categories.antiques} onCheckedChange={() => handleCategoryChange("antiques")} />
                         <label htmlFor="antiques" className="text-sm font-sans cursor-pointer">
                           Antiques
                         </label>
@@ -225,11 +182,7 @@ const Auctions = () => {
                   {/* Cooldown */}
                   <div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="paused"
-                        checked={showPaused}
-                        onCheckedChange={(checked) => setShowPaused(checked as boolean)}
-                      />
+                      <Checkbox id="paused" checked={showPaused} onCheckedChange={checked => setShowPaused(checked as boolean)} />
                       <label htmlFor="paused" className="text-sm font-sans cursor-pointer">
                         ⏸️ Show only paused
                       </label>
@@ -241,11 +194,7 @@ const Auctions = () => {
                     <Button className="w-full font-grotesk uppercase text-xs tracking-wide">
                       Apply Filters
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full font-grotesk uppercase text-xs tracking-wide"
-                      onClick={clearFilters}
-                    >
+                    <Button variant="outline" className="w-full font-grotesk uppercase text-xs tracking-wide" onClick={clearFilters}>
                       Clear All
                     </Button>
                   </div>
@@ -273,25 +222,19 @@ const Auctions = () => {
 
               {/* Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {allAuctions.map((auction) => (
-                  <AuctionCard key={auction.id} {...auction} />
-                ))}
+                {allAuctions.map(auction => <AuctionCard key={auction.id} {...auction} />)}
               </div>
 
               {/* Empty State */}
-              {allAuctions.length === 0 && (
-                <div className="text-center py-16">
+              {allAuctions.length === 0 && <div className="text-center py-16">
                   <p className="font-sans text-foreground/60">No auctions match your filters</p>
-                </div>
-              )}
+                </div>}
             </div>
           </div>
         </div>
       </div>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Auctions;
