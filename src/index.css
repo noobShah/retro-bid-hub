@@ -34,6 +34,9 @@ All colors MUST be HSL.
     --accent: 180 13% 46%;         /* #6b7d7d */
     --accent-foreground: 0 0% 100%;
 
+    /* Deep Slate - Sidebar/Admin UI */
+    --deep-slate: 180 13% 46%;     /* #6b7d7d - same as accent */
+
     /* Government Gold - Badges */
     --gold: 45 71% 53%;            /* #d4af37 */
     

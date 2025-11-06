@@ -47,6 +47,7 @@ export default {
         },
         gold: "hsl(var(--gold))",
         success: "hsl(var(--success))",
+        "deep-slate": "hsl(var(--deep-slate))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

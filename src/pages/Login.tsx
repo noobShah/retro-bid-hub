@@ -26,7 +26,18 @@ const Login = () => {
     const success = login(formData.email, formData.password);
     if (success) {
       toast.success("Login successful!");
-      navigate("/home");
+      // Check if user is admin and redirect accordingly
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/home");
+        }
+      } else {
+        navigate("/home");
+      }
     } else {
       toast.error("Invalid credentials");
     }
