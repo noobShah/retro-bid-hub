@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import logoSeal from "@/assets/logo-seal.png";
+// use public/logo.png served from `/logo.png`
 import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, ShoppingCart, LayoutDashboard } from "lucide-react";
 
@@ -22,7 +22,7 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to={isAuthenticated ? "/home" : "/"} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <img src={logoSeal} alt="Auction Grid" className="h-10 w-10" />
+            <img src="/logo.png" alt="Auction Grid" className="h-10 w-10" />
             <div className="flex flex-col">
               <span className="font-courier font-bold text-lg tracking-wider text-foreground uppercase">
                 Auction Grid

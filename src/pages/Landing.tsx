@@ -24,6 +24,9 @@ const Landing = () => {
           <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-gold -mb-2 -ml-2" />
           <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-gold -mb-2 -mr-2" />
           
+          {/* Logo (from public/logo.png) */}
+          <img src="/logo.png" alt="Auction Grid logo" className="mx-auto mb-6 w-60 h-auto object-contain" />
+
           <h1 className="font-courier font-bold text-5xl md:text-7xl uppercase tracking-[0.2em] mb-4 text-foreground">AUCTION GRID</h1>
           
           <div className="flex items-center justify-center gap-4 mb-6">

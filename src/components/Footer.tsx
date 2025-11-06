@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logoSeal from "@/assets/logo-seal.png";
+// use public/logo.png served from `/logo.png`
 
 export const Footer = () => {
   return (
@@ -9,7 +9,7 @@ export const Footer = () => {
           {/* Brand Section */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src={logoSeal} alt="Auction Grid" className="h-12 w-12" />
+              <img src="/logo.png" alt="Auction Grid" className="h-12 w-12" />
               <div>
                 <h3 className="font-courier font-bold text-xl tracking-wider text-foreground uppercase">
                   Auction Grid
