@@ -21,7 +21,7 @@ export const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <Link to={isAuthenticated ? "/home" : "/"} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <img src={logoSeal} alt="Auction Grid" className="h-10 w-10" />
             <div className="flex flex-col">
               <span className="font-courier font-bold text-lg tracking-wider text-foreground uppercase">
@@ -36,14 +36,14 @@ export const Navbar = () => {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
             <Link
-              to="/"
+              to="/home"
               className={`font-grotesk uppercase text-sm tracking-wide transition-all relative group ${
-                isActive("/") ? "text-primary font-semibold" : "text-foreground hover:text-primary"
+                isActive("/home") ? "text-primary font-semibold" : "text-foreground hover:text-primary"
               }`}
             >
               Home
               <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform origin-left ${
-                isActive("/") ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                isActive("/home") ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
               }`} />
             </Link>
             <Link
