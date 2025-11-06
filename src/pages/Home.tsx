@@ -6,71 +6,59 @@ import { Link } from "react-router-dom";
 import auctionCar from "@/assets/auction-car-1.jpg";
 import auctionBike from "@/assets/auction-bike-1.jpg";
 import auctionProperty from "@/assets/auction-property-1.jpg";
-
 const Home = () => {
   // Mock data - would come from database
-  const popularAuctions = [
-    {
-      id: "1",
-      title: "Maruti Swift VXI 2018",
-      image: auctionCar,
-      basePrice: 120000,
-      bidders: 23,
-      timeRemaining: "2d 14h",
-      category: "Four Wheeler",
-    },
-    {
-      id: "2",
-      title: "Royal Enfield Classic 350",
-      image: auctionBike,
-      basePrice: 85000,
-      bidders: 18,
-      timeRemaining: "1d 8h",
-      category: "Two Wheeler",
-    },
-    {
-      id: "3",
-      title: "2BHK Apartment Ahmedabad",
-      image: auctionProperty,
-      basePrice: 2500000,
-      bidders: 31,
-      timeRemaining: "3d 2h",
-      category: "Property",
-    },
-  ];
-
-  const expiringSoon = [
-    {
-      id: "4",
-      title: "Honda City 2019",
-      image: auctionCar,
-      basePrice: 450000,
-      bidders: 15,
-      timeRemaining: "6h 23m",
-      category: "Four Wheeler",
-    },
-    {
-      id: "5",
-      title: "Bajaj Pulsar NS200",
-      image: auctionBike,
-      basePrice: 65000,
-      bidders: 12,
-      timeRemaining: "12h 45m",
-      category: "Two Wheeler",
-    },
-    {
-      id: "6",
-      title: "Commercial Shop Surat",
-      image: auctionProperty,
-      basePrice: 1800000,
-      bidders: 9,
-      timeRemaining: "18h 15m",
-      category: "Property",
-    },
-  ];
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  const popularAuctions = [{
+    id: "1",
+    title: "Maruti Swift VXI 2018",
+    image: auctionCar,
+    basePrice: 120000,
+    bidders: 23,
+    timeRemaining: "2d 14h",
+    category: "Four Wheeler"
+  }, {
+    id: "2",
+    title: "Royal Enfield Classic 350",
+    image: auctionBike,
+    basePrice: 85000,
+    bidders: 18,
+    timeRemaining: "1d 8h",
+    category: "Two Wheeler"
+  }, {
+    id: "3",
+    title: "2BHK Apartment Ahmedabad",
+    image: auctionProperty,
+    basePrice: 2500000,
+    bidders: 31,
+    timeRemaining: "3d 2h",
+    category: "Property"
+  }];
+  const expiringSoon = [{
+    id: "4",
+    title: "Honda City 2019",
+    image: auctionCar,
+    basePrice: 450000,
+    bidders: 15,
+    timeRemaining: "6h 23m",
+    category: "Four Wheeler"
+  }, {
+    id: "5",
+    title: "Bajaj Pulsar NS200",
+    image: auctionBike,
+    basePrice: 65000,
+    bidders: 12,
+    timeRemaining: "12h 45m",
+    category: "Two Wheeler"
+  }, {
+    id: "6",
+    title: "Commercial Shop Surat",
+    image: auctionProperty,
+    basePrice: 1800000,
+    bidders: 9,
+    timeRemaining: "18h 15m",
+    category: "Property"
+  }];
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
 
       {/* Hero Section */}
@@ -170,9 +158,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularAuctions.map((auction) => (
-              <AuctionCard key={auction.id} {...auction} />
-            ))}
+            {popularAuctions.map(auction => <AuctionCard key={auction.id} {...auction} />)}
           </div>
         </div>
       </section>
@@ -181,25 +167,19 @@ const Home = () => {
       <section className="py-16 px-4 bg-background">
         <div className="container mx-auto">
           <div className="mb-8">
-            <h2 className="font-courier font-bold text-3xl uppercase tracking-wider mb-2 text-destructive">
-              ⏰ Expiring Soon
-            </h2>
+            <h2 className="font-courier font-bold text-3xl uppercase tracking-wider mb-2 text-destructive">Expiring Soon</h2>
             <p className="font-sans text-sm text-foreground/70">
               Act fast! These auctions are ending soon
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {expiringSoon.map((auction) => (
-              <AuctionCard key={auction.id} {...auction} />
-            ))}
+            {expiringSoon.map(auction => <AuctionCard key={auction.id} {...auction} />)}
           </div>
         </div>
       </section>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Home;
