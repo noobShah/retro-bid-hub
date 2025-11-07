@@ -8,18 +8,20 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    } else if (user?.role !== "admin") {
-      navigate("/home");
+    if (!loading) {
+      if (!isAuthenticated) {
+        navigate("/login");
+      } else if (!isAdmin) {
+        navigate("/home");
+      }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, isAdmin, loading, navigate]);
 
-  if (!isAuthenticated || user?.role !== "admin") {
+  if (loading || !isAuthenticated || !isAdmin) {
     return null;
   }
 

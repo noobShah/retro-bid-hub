@@ -8,7 +8,7 @@ import { User, LogOut, ShoppingCart, LayoutDashboard } from "lucide-react";
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, session } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = () => {
@@ -95,7 +95,7 @@ export const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="font-grotesk uppercase text-sm flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {user?.fullName || "Account"}
+                      {user?.email?.split('@')[0] || "Account"}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">

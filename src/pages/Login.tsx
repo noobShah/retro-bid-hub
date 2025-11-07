@@ -8,38 +8,35 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isAdmin, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/home");
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const success = login(formData.email, formData.password);
-    if (success) {
-      toast.success("Login successful!");
-      // Check if user is admin and redirect accordingly
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        if (userData.role === "admin") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/home");
-        }
+    if (isAuthenticated && !loading) {
+      if (isAdmin) {
+        navigate("/admin/dashboard");
       } else {
         navigate("/home");
       }
+    }
+  }, [isAuthenticated, isAdmin, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const { error } = await login(formData.email, formData.password);
+    setIsLoading(false);
+
+    if (!error) {
+      toast.success("Login successful!");
+      // Navigation handled by useEffect
     } else {
-      toast.error("Invalid credentials");
+      toast.error(error.message || "Invalid credentials");
     }
   };
 
@@ -60,7 +57,7 @@ const Login = () => {
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="font-sans text-sm font-medium">
-                📧 Email Address
+                Email Address
               </Label>
               <Input
                 id="email"
@@ -75,7 +72,7 @@ const Login = () => {
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password" className="font-sans text-sm font-medium">
-                🔒 Password
+                Password
               </Label>
               <Input
                 id="password"
@@ -88,8 +85,8 @@ const Login = () => {
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full font-grotesk uppercase tracking-wide">
-              Login
+            <Button type="submit" className="w-full font-grotesk uppercase tracking-wide" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>
 
@@ -101,9 +98,6 @@ const Login = () => {
                 Sign Up
               </Link>
             </p>
-            <Link to="/forgot-password" className="text-primary/80 hover:text-primary block">
-              Forgot Password?
-            </Link>
           </div>
         </div>
       </div>

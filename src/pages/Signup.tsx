@@ -23,6 +23,7 @@ const Signup = () => {
     city: "",
     agreeToTerms: false,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -30,7 +31,7 @@ const Signup = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.agreeToTerms) {
@@ -43,9 +44,16 @@ const Signup = () => {
       return;
     }
 
-    signup(formData);
-    toast.success("Account created successfully!");
-    navigate("/home");
+    setIsLoading(true);
+    const { error } = await signup(formData.email, formData.password, formData.fullName, formData.city);
+    setIsLoading(false);
+
+    if (!error) {
+      toast.success("Account created successfully!");
+      navigate("/home");
+    } else {
+      toast.error(error.message || "Could not create account");
+    }
   };
 
   return (
@@ -65,7 +73,7 @@ const Signup = () => {
             {/* Full Name */}
             <div className="space-y-2">
               <Label htmlFor="fullName" className="font-sans text-sm font-medium">
-                📝 Full Name
+                Full Name
               </Label>
               <Input
                 id="fullName"
@@ -80,7 +88,7 @@ const Signup = () => {
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="font-sans text-sm font-medium">
-                📧 Email Address
+                Email Address
               </Label>
               <Input
                 id="email"
@@ -95,7 +103,7 @@ const Signup = () => {
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password" className="font-sans text-sm font-medium">
-                🔒 Password
+                Password
               </Label>
               <Input
                 id="password"
@@ -111,7 +119,7 @@ const Signup = () => {
             {/* City */}
             <div className="space-y-2">
               <Label htmlFor="city" className="font-sans text-sm font-medium">
-                🏙️ City (Gujarat Only)
+                City (Gujarat Only)
               </Label>
               <Select value={formData.city} onValueChange={(value) => setFormData({ ...formData, city: value })}>
                 <SelectTrigger className="border-2">
@@ -148,8 +156,8 @@ const Signup = () => {
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full font-grotesk uppercase tracking-wide">
-              Sign Up
+            <Button type="submit" className="w-full font-grotesk uppercase tracking-wide" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>
 
