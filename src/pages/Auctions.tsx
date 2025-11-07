@@ -1,324 +1,271 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AuctionCard } from "@/components/AuctionCard";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import auctionCar from "@/assets/auction-car-1.jpg";
-import auctionBike from "@/assets/auction-bike-1.jpg";
-import auctionProperty from "@/assets/auction-property-1.jpg";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-const gujaratCities = ["All Cities", "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Gandhinagar", "Jamnagar", "Junagadh", "Navsari", "Valsad"];
+const gujaratCities = ["All Cities", "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Gandhinagar"];
+const categories = ["Two Wheeler", "Four Wheeler", "Heavy Vehicle", "Property", "Antiques"];
 
 const Auctions = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [priceRange, setPriceRange] = useState([0, 10000000]);
-  const [categories, setCategories] = useState({
-    twoWheeler: false,
-    fourWheeler: false,
-    heavyVehicle: false,
-    property: false,
-    antiques: false
-  });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showPaused, setShowPaused] = useState(false);
-  const [sortBy, setSortBy] = useState("bidders_desc");
+  const [sortBy, setSortBy] = useState("none");
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock auction data with city info
-  const allAuctions = [{
-    id: "1",
-    title: "Maruti Swift VXI 2018",
-    image: auctionCar,
-    basePrice: 120000,
-    bidders: 23,
-    timeRemaining: "2d 14h",
-    category: "Four Wheeler",
-    city: "Ahmedabad",
-    isPaused: false
-  }, {
-    id: "2",
-    title: "Royal Enfield Classic 350",
-    image: auctionBike,
-    basePrice: 85000,
-    bidders: 18,
-    timeRemaining: "1d 8h",
-    category: "Two Wheeler",
-    city: "Surat",
-    isPaused: false
-  }, {
-    id: "3",
-    title: "2BHK Apartment Ahmedabad",
-    image: auctionProperty,
-    basePrice: 2500000,
-    bidders: 31,
-    timeRemaining: "3d 2h",
-    category: "Property",
-    city: "Ahmedabad",
-    isPaused: false
-  }, {
-    id: "4",
-    title: "Honda City 2019",
-    image: auctionCar,
-    basePrice: 450000,
-    bidders: 15,
-    timeRemaining: "6h 23m",
-    category: "Four Wheeler",
-    city: "Vadodara",
-    isPaused: true
-  }, {
-    id: "5",
-    title: "Bajaj Pulsar NS200",
-    image: auctionBike,
-    basePrice: 65000,
-    bidders: 12,
-    timeRemaining: "12h 45m",
-    category: "Two Wheeler",
-    city: "Rajkot",
-    isPaused: false
-  }, {
-    id: "6",
-    title: "Commercial Shop Surat",
-    image: auctionProperty,
-    basePrice: 1800000,
-    bidders: 9,
-    timeRemaining: "18h 15m",
-    category: "Property",
-    city: "Surat",
-    isPaused: false
-  }];
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    fetchAuctions();
+  }, [isAuthenticated, navigate]);
 
-  // Category mapping
-  const categoryMap = {
-    twoWheeler: "Two Wheeler",
-    fourWheeler: "Four Wheeler",
-    heavyVehicle: "Heavy Vehicle",
-    property: "Property",
-    antiques: "Antiques"
+  const fetchAuctions = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('auctions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching auctions:', error);
+    } else {
+      setAuctions(data || []);
+    }
+    setLoading(false);
   };
 
-  // Filter and sort auctions
-  const filteredAndSortedAuctions = useMemo(() => {
-    let filtered = [...allAuctions];
-
-    // City filter
-    if (selectedCity !== "All Cities") {
-      filtered = filtered.filter(auction => auction.city === selectedCity);
-    }
-
-    // Price range filter
-    filtered = filtered.filter(auction => 
-      auction.basePrice >= priceRange[0] && auction.basePrice <= priceRange[1]
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    setSelectedCategories(prev => 
+      checked ? [...prev, category] : prev.filter(c => c !== category)
     );
-
-    // Category filter
-    const selectedCategories = Object.keys(categories).filter(
-      key => categories[key as keyof typeof categories]
-    );
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(auction => 
-        selectedCategories.some(key => 
-          categoryMap[key as keyof typeof categoryMap] === auction.category
-        )
-      );
-    }
-
-    // Paused filter
-    if (showPaused) {
-      filtered = filtered.filter(auction => auction.isPaused);
-    }
-
-    // Sorting
-    const timeToMinutes = (timeStr: string) => {
-      const parts = timeStr.split(' ');
-      let minutes = 0;
-      parts.forEach(part => {
-        if (part.includes('d')) minutes += parseInt(part) * 24 * 60;
-        if (part.includes('h')) minutes += parseInt(part) * 60;
-        if (part.includes('m')) minutes += parseInt(part);
-      });
-      return minutes;
-    };
-
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "bidders_desc":
-          return b.bidders - a.bidders;
-        case "bidders_asc":
-          return a.bidders - b.bidders;
-        case "time_asc":
-          return timeToMinutes(a.timeRemaining) - timeToMinutes(b.timeRemaining);
-        case "time_desc":
-          return timeToMinutes(b.timeRemaining) - timeToMinutes(a.timeRemaining);
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [selectedCity, priceRange, categories, showPaused, sortBy, allAuctions]);
-
-  const handleCategoryChange = (category: keyof typeof categories) => {
-    setCategories({
-      ...categories,
-      [category]: !categories[category]
-    });
   };
 
   const clearFilters = () => {
     setSelectedCity("All Cities");
     setPriceRange([0, 10000000]);
-    setCategories({
-      twoWheeler: false,
-      fourWheeler: false,
-      heavyVehicle: false,
-      property: false,
-      antiques: false
-    });
+    setSelectedCategories([]);
     setShowPaused(false);
+    setSortBy("none");
   };
-  return <div className="min-h-screen flex flex-col">
+
+  const filteredAndSortedAuctions = useMemo(() => {
+    let result = [...auctions];
+
+    // City filter
+    if (selectedCity !== "All Cities") {
+      result = result.filter(auction => auction.city === selectedCity);
+    }
+
+    // Price filter
+    result = result.filter(auction => 
+      auction.base_price >= priceRange[0] && auction.base_price <= priceRange[1]
+    );
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      result = result.filter(auction => selectedCategories.includes(auction.category));
+    }
+
+    // Status filter
+    if (!showPaused) {
+      result = result.filter(auction => auction.status === 'active');
+    }
+
+    // Sorting
+    if (sortBy === "bidders") {
+      result.sort((a, b) => (b.bidders_count || 0) - (a.bidders_count || 0));
+    } else if (sortBy === "time") {
+      result.sort((a, b) => 
+        new Date(a.expiration_date).getTime() - new Date(b.expiration_date).getTime()
+      );
+    }
+
+    return result;
+  }, [auctions, selectedCity, priceRange, selectedCategories, showPaused, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-lg font-sans">Loading auctions...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="font-courier font-bold text-4xl uppercase tracking-wider mb-2">
+            Browse Auctions
+          </h1>
+          <div className="h-0.5 w-48 bg-accent" />
+          <p className="font-sans text-muted-foreground mt-4">
+            Explore verified government auctions from across Gujarat
+          </p>
+        </div>
 
-      <div className="flex-1 bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="font-courier font-bold text-4xl uppercase tracking-wider mb-2">
-              All Auctions
-            </h1>
-            <p className="font-sans text-foreground/70">
-              Browse government-approved auctions across Gujarat
-            </p>
-          </div>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Filters Sidebar */}
+          <aside className="w-full md:w-64 space-y-6">
+            <div className="bg-card border-2 border-border rounded-md p-6 sticky top-20">
+              <h2 className="font-grotesk font-semibold text-lg uppercase tracking-wide mb-4">
+                Filters
+              </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Filter Sidebar */}
-            <aside className="lg:col-span-1">
-              <div className="bg-secondary border-2 border-border rounded-md p-6 sticky top-20">
-                <div className="mb-6">
-                  <h2 className="font-courier font-bold text-xl uppercase tracking-wider mb-1">FILTER AUCTIONS</h2>
-                  <div className="h-0.5 w-24 bg-accent" />
-                </div>
-
-                <div className="space-y-6">
-                  {/* City */}
-                  <div>
-                    <Label className="font-sans font-semibold mb-2 block">City</Label>
-                    <Select value={selectedCity} onValueChange={setSelectedCity}>
-                      <SelectTrigger className="border-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gujaratCities.map(city => <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Price Range */}
-                  <div>
-                    <Label className="font-sans font-semibold mb-3 block">Price Range</Label>
-                    <Slider value={priceRange} onValueChange={setPriceRange} max={10000000} step={50000} className="mb-3" />
-                    <div className="flex justify-between text-xs font-sans text-foreground/70">
-                      <span>₹{priceRange[0].toLocaleString("en-IN")}</span>
-                      <span>₹{priceRange[1].toLocaleString("en-IN")}</span>
-                    </div>
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <Label className="font-sans font-semibold mb-3 block">Category</Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="twoWheeler" checked={categories.twoWheeler} onCheckedChange={() => handleCategoryChange("twoWheeler")} />
-                        <label htmlFor="twoWheeler" className="text-sm font-sans cursor-pointer">
-                          Two Wheeler
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="fourWheeler" checked={categories.fourWheeler} onCheckedChange={() => handleCategoryChange("fourWheeler")} />
-                        <label htmlFor="fourWheeler" className="text-sm font-sans cursor-pointer">
-                          Four Wheeler
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="heavyVehicle" checked={categories.heavyVehicle} onCheckedChange={() => handleCategoryChange("heavyVehicle")} />
-                        <label htmlFor="heavyVehicle" className="text-sm font-sans cursor-pointer">
-                          Heavy Vehicle
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="property" checked={categories.property} onCheckedChange={() => handleCategoryChange("property")} />
-                        <label htmlFor="property" className="text-sm font-sans cursor-pointer">
-                          Property
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="antiques" checked={categories.antiques} onCheckedChange={() => handleCategoryChange("antiques")} />
-                        <label htmlFor="antiques" className="text-sm font-sans cursor-pointer">
-                          Antiques
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cooldown */}
-                  <div>
-                    <Label className="font-sans font-semibold mb-2 block">Cooldown Period</Label>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="paused" checked={showPaused} onCheckedChange={checked => setShowPaused(checked as boolean)} />
-                      <label htmlFor="paused" className="text-sm font-sans cursor-pointer">Show only paused</label>
-                    </div>
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="space-y-2 pt-4">
-                    <Button variant="outline" className="w-full font-grotesk uppercase text-xs tracking-wide" onClick={clearFilters}>
-                      Clear All Filters
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            {/* Auction Grid */}
-            <div className="lg:col-span-3">
-              {/* Sort Options */}
-              <div className="mb-6 flex items-center gap-4">
-                <span className="font-sans text-sm font-medium">Sort by:</span>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48 border-2">
+              {/* City Filter */}
+              <div className="space-y-2 mb-6">
+                <label className="font-sans text-sm font-medium">City</label>
+                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                  <SelectTrigger className="border-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="bidders_desc">Most Bidders</SelectItem>
-                    <SelectItem value="bidders_asc">Least Bidders</SelectItem>
-                    <SelectItem value="time_asc">Expiring Soon</SelectItem>
-                    <SelectItem value="time_desc">Most Time Left</SelectItem>
+                    {gujaratCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredAndSortedAuctions.map(auction => <AuctionCard key={auction.id} {...auction} />)}
+              {/* Price Range */}
+              <div className="space-y-3 mb-6">
+                <label className="font-sans text-sm font-medium">
+                  Price Range
+                </label>
+                <div className="px-2">
+                  <Slider
+                    value={priceRange}
+                    onValueChange={setPriceRange}
+                    max={10000000}
+                    step={50000}
+                    className="my-4"
+                  />
+                </div>
+                <div className="flex justify-between font-sans text-xs text-muted-foreground">
+                  <span>₹{(priceRange[0] / 100000).toFixed(1)}L</span>
+                  <span>₹{(priceRange[1] / 100000).toFixed(1)}L</span>
+                </div>
               </div>
 
-              {/* Empty State */}
-              {filteredAndSortedAuctions.length === 0 && <div className="text-center py-16">
-                  <p className="font-sans text-foreground/60 text-lg">No auctions match your filters</p>
-                  <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
-                </div>}
+              {/* Categories */}
+              <div className="space-y-3 mb-6">
+                <label className="font-sans text-sm font-medium">Category</label>
+                {categories.map((category) => (
+                  <div key={category} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={category}
+                      checked={selectedCategories.includes(category)}
+                      onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                    />
+                    <label
+                      htmlFor={category}
+                      className="font-sans text-sm cursor-pointer"
+                    >
+                      {category}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              {/* Show Paused */}
+              <div className="flex items-center space-x-2 mb-6">
+                <Checkbox
+                  id="showPaused"
+                  checked={showPaused}
+                  onCheckedChange={(checked) => setShowPaused(checked as boolean)}
+                />
+                <label htmlFor="showPaused" className="font-sans text-sm cursor-pointer">
+                  Show Paused Auctions
+                </label>
+              </div>
+
+              {/* Clear Filters */}
+              <Button 
+                variant="outline" 
+                className="w-full font-grotesk uppercase text-sm"
+                onClick={clearFilters}
+              >
+                Clear All Filters
+              </Button>
             </div>
+          </aside>
+
+          {/* Auctions Grid */}
+          <div className="flex-1">
+            {/* Sort Options */}
+            <div className="mb-6 flex items-center justify-between">
+              <p className="font-sans text-sm text-muted-foreground">
+                {filteredAndSortedAuctions.length} auctions found
+              </p>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48 border-2">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Sorting</SelectItem>
+                  <SelectItem value="bidders">Most Bidders</SelectItem>
+                  <SelectItem value="time">Ending Soon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Auctions Grid */}
+            {filteredAndSortedAuctions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAndSortedAuctions.map((auction) => (
+                  <AuctionCard
+                    key={auction.id}
+                    id={auction.id}
+                    title={auction.title}
+                    city={auction.city}
+                    category={auction.category}
+                    basePrice={auction.base_price}
+                    expirationDate={auction.expiration_date}
+                    imageUrl={auction.images?.[0] || 'https://images.unsplash.com/photo-1449034446853-66c86144b0ad?w=800'}
+                    isPaused={auction.status !== 'active'}
+                    bidders={auction.bidders_count || 0}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <p className="font-sans text-lg text-muted-foreground mb-4">
+                  No auctions match your filters
+                </p>
+                <Button onClick={clearFilters} variant="outline" className="font-grotesk uppercase">
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Auctions;
