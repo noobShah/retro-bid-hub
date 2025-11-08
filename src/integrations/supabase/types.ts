@@ -24,6 +24,7 @@ export type Database = {
           cooldown_hours: number | null
           created_at: string | null
           created_by: string | null
+          current_bid: number | null
           description: string | null
           expiration_date: string
           id: string
@@ -42,6 +43,7 @@ export type Database = {
           cooldown_hours?: number | null
           created_at?: string | null
           created_by?: string | null
+          current_bid?: number | null
           description?: string | null
           expiration_date: string
           id?: string
@@ -60,6 +62,7 @@ export type Database = {
           cooldown_hours?: number | null
           created_at?: string | null
           created_by?: string | null
+          current_bid?: number | null
           description?: string | null
           expiration_date?: string
           id?: string
@@ -70,6 +73,38 @@ export type Database = {
           years_used?: number | null
         }
         Relationships: []
+      }
+      bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_logs: {
         Row: {

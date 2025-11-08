@@ -3,12 +3,14 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Users, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, Users, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useAuctionTimer } from "@/hooks/useAuctionTimer";
+import { useBidding } from "@/hooks/useBidding";
 
 const AuctionDetail = () => {
   const { id } = useParams();
@@ -18,7 +20,9 @@ const AuctionDetail = () => {
   const [auction, setAuction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isInCooldown, setIsInCooldown] = useState(false);
+  const [bidAmount, setBidAmount] = useState("");
   const { timeRemaining } = useAuctionTimer(auction?.expiration_date);
+  const { bids, currentBid, loading: biddingLoading, placeBid } = useBidding(id || "");
 
   useEffect(() => {
     const fetchAuction = async () => {
@@ -49,6 +53,24 @@ const AuctionDetail = () => {
 
     fetchAuction();
   }, [id, navigate]);
+
+  const handlePlaceBid = async () => {
+    if (!bidAmount) {
+      toast.error("Please enter a bid amount");
+      return;
+    }
+
+    const amount = parseFloat(bidAmount);
+    if (isNaN(amount)) {
+      toast.error("Please enter a valid number");
+      return;
+    }
+
+    const success = await placeBid(amount);
+    if (success) {
+      setBidAmount("");
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -203,10 +225,24 @@ const AuctionDetail = () => {
                   </p>
                 </div>
 
+                {currentBid > 0 && (
+                  <div className="bg-primary/10 border-2 border-primary rounded-md p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      <p className="font-grotesk font-semibold text-sm uppercase tracking-wide">
+                        Current Highest Bid
+                      </p>
+                    </div>
+                    <p className="font-bebas text-4xl text-primary tracking-wide">
+                      ₹{currentBid.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 text-foreground/70">
                   <Users className="h-5 w-5" />
                   <span className="font-sans font-medium">
-                    {auction.bidders_count} participants currently bidding
+                    {auction.bidders_count} participants • {bids.length} bids placed
                   </span>
                 </div>
 
@@ -250,6 +286,32 @@ const AuctionDetail = () => {
                   </div>
                 </div>
 
+                {/* Bidding Section */}
+                {isAuthenticated && !isInCooldown && (
+                  <div className="bg-secondary border-2 border-border rounded-md p-4 space-y-3">
+                    <h3 className="font-grotesk font-semibold uppercase text-sm">Place Your Bid</h3>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder={`Min: ₹${(currentBid + 1).toLocaleString("en-IN")}`}
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handlePlaceBid}
+                        disabled={biddingLoading}
+                        className="px-6"
+                      >
+                        {biddingLoading ? "Placing..." : "Bid"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Your bid must be higher than ₹{currentBid.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                )}
+
                 {/* Add to Cart Button */}
                 <Button
                   variant="hero"
@@ -268,9 +330,12 @@ const AuctionDetail = () => {
 
           {/* Detailed Information Tabs */}
           <Tabs defaultValue="overview" className="mb-12">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="font-grotesk uppercase text-sm">
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="bids" className="font-grotesk uppercase text-sm">
+                Bid History ({bids.length})
               </TabsTrigger>
               <TabsTrigger value="specifications" className="font-grotesk uppercase text-sm">
                 Specifications
@@ -312,6 +377,61 @@ const AuctionDetail = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bids" className="mt-6">
+              <div className="bg-card border-2 border-border rounded-md p-6">
+                <h3 className="font-courier font-bold text-xl uppercase tracking-wide mb-4">
+                  🔨 Live Bid History
+                </h3>
+                <div className="h-0.5 w-32 bg-accent mb-6" />
+                
+                {bids.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-sans">No bids placed yet. Be the first to bid!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {bids.map((bid, index) => (
+                      <div
+                        key={bid.id}
+                        className={`flex items-center justify-between p-4 rounded-md border-2 ${
+                          index === 0
+                            ? "bg-primary/10 border-primary"
+                            : "bg-secondary border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                            index === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-grotesk font-semibold">
+                              {bid.profiles?.full_name || "Anonymous"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(bid.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bebas text-2xl text-primary">
+                            ₹{Number(bid.amount).toLocaleString("en-IN")}
+                          </p>
+                          {index === 0 && (
+                            <p className="text-xs font-sans text-success uppercase font-semibold">
+                              Highest Bid
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
