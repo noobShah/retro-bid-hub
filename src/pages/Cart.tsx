@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Info, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { calculateFees, AuctionCategory } from "@/lib/feeCalculator";
 
 // Fee structure data
 const feeStructure = [
@@ -19,56 +22,88 @@ const feeStructure = [
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [agreements, setAgreements] = useState({
     readTerms: false,
     understandPayment: false,
     acceptRefund: false,
   });
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock cart item (in production, this would come from context/state)
-  const [cartItems, setCartItems] = useState([
-    {
-      id: "1",
-      title: "Maruti Swift VXI 2018",
-      basePrice: 120000,
-      category: "Four Wheeler",
-      image: "/placeholder.svg",
-      platformFees: 500,
-      depositFees: 4500,
-    },
-  ]);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
 
-  const totalPlatformFees = cartItems.reduce((sum, item) => sum + item.platformFees, 0);
-  const totalDepositFees = cartItems.reduce((sum, item) => sum + item.depositFees, 0);
+    // Load cart from localStorage
+    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setCartItems(storedCart);
+  }, [isAuthenticated, navigate]);
+
+  const totalPlatformFees = cartItems.reduce((sum, item) => {
+    const fees = calculateFees(item.category as AuctionCategory);
+    return sum + fees.platform;
+  }, 0);
+  
+  const totalDepositFees = cartItems.reduce((sum, item) => {
+    const fees = calculateFees(item.category as AuctionCategory);
+    return sum + fees.deposit;
+  }, 0);
+  
   const grandTotal = totalPlatformFees + totalDepositFees;
 
   const removeItem = (id: string) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+    const updatedCart = cartItems.filter((item) => item.id !== id);
+    setCartItems(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
     toast.success("Item removed from cart");
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!agreements.readTerms || !agreements.understandPayment || !agreements.acceptRefund) {
       toast.error("Please agree to all terms to proceed");
       return;
     }
 
-    // Simulate confirmation
-    toast.success("Participation Confirmed!", {
-      description: "Check your dashboard for auction updates",
-    });
-    
-    // Send simulated email notification
-    console.log("📧 EMAIL SENT: Participation Confirmation");
-    console.log({
-      to: "user@example.com",
-      subject: "Auction Participation Confirmed - Maruti Swift VXI 2018",
-      details: cartItems,
-    });
+    if (!user) return;
 
-    setShowTermsModal(false);
-    navigate("/dashboard");
+    setLoading(true);
+
+    try {
+      // Create participation records for each cart item
+      for (const item of cartItems) {
+        const fees = calculateFees(item.category as AuctionCategory);
+        
+        const { error } = await supabase
+          .from("participations")
+          .insert({
+            user_id: user.id,
+            auction_id: item.id,
+            platform_fee: fees.platform,
+            deposit_fee: fees.deposit,
+            status: "active"
+          });
+
+        if (error) throw error;
+      }
+
+      // Clear cart
+      localStorage.removeItem("cart");
+      
+      toast.success("Participation Confirmed!", {
+        description: "Check your dashboard for auction updates",
+      });
+
+      setShowTermsModal(false);
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error("Failed to confirm participation: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -266,11 +301,11 @@ const Cart = () => {
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowTermsModal(false)} className="flex-1">
+              <Button variant="outline" onClick={() => setShowTermsModal(false)} className="flex-1" disabled={loading}>
                 Cancel
               </Button>
-              <Button onClick={handleProceed} className="flex-1">
-                I Agree & Proceed
+              <Button onClick={handleProceed} className="flex-1" disabled={loading}>
+                {loading ? "Processing..." : "I Agree & Proceed"}
               </Button>
             </div>
           </div>

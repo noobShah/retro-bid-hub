@@ -1,41 +1,103 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, CheckCircle, AlertCircle } from "lucide-react";
-import auctionCar from "@/assets/auction-car-1.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useAuctionTimer } from "@/hooks/useAuctionTimer";
 
 const AuctionDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [auction, setAuction] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isInCooldown, setIsInCooldown] = useState(false);
+  const { timeRemaining } = useAuctionTimer(auction?.expiration_date);
 
-  // Mock data - would come from database
-  const auction = {
-    id: "1",
-    title: "Maruti Swift VXI 2018",
-    images: [auctionCar, auctionCar, auctionCar],
-    basePrice: 120000,
-    bidders: 23,
-    timeRemaining: "2d 14h 32m",
-    isCooldown: true,
-    category: "Four Wheeler",
-    description:
-      "Well-maintained Maruti Swift VXI 2018 model in excellent condition. Single owner, all services done at authorized service center. Ready for immediate transfer.",
-    specifications: {
-      make: "Maruti Suzuki",
-      model: "Swift VXI",
-      year: 2018,
-      kilometers: "42,000 km",
-      fuelType: "Petrol",
-      transmission: "Manual",
-      insurance: "Valid till March 2026",
-    },
-    conditionRating: 8,
-    platformFees: 500,
-    depositFees: 4500,
+  useEffect(() => {
+    const fetchAuction = async () => {
+      if (!id) return;
+      
+      const { data, error } = await supabase
+        .from("auctions")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        toast.error("Failed to load auction details");
+        navigate("/auctions");
+        return;
+      }
+
+      setAuction(data);
+      
+      // Check cooldown status
+      const now = new Date();
+      const expirationDate = new Date(data.expiration_date);
+      const cooldownEnd = new Date(expirationDate.getTime() + (data.cooldown_hours || 0) * 60 * 60 * 1000);
+      setIsInCooldown(now < cooldownEnd && now > expirationDate);
+      
+      setLoading(false);
+    };
+
+    fetchAuction();
+  }, [id, navigate]);
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to participate in auctions");
+      navigate("/login");
+      return;
+    }
+
+    if (isInCooldown) {
+      toast.error("This auction is in cooldown period");
+      return;
+    }
+
+    // Store auction in localStorage for cart
+    const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+    
+    // Check if already in cart
+    if (cartItems.find((item: any) => item.id === auction.id)) {
+      toast.info("This auction is already in your cart");
+      navigate("/cart");
+      return;
+    }
+
+    cartItems.push({
+      id: auction.id,
+      title: auction.title,
+      basePrice: auction.base_price,
+      category: auction.category,
+      image: auction.images?.[0] || "/placeholder.svg",
+    });
+    
+    localStorage.setItem("cart", JSON.stringify(cartItems));
+    toast.success("Added to cart!");
+    navigate("/cart");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!auction) return null;
 
   const feeStructure = [
     { category: "Two Wheeler", platform: 50, deposit: 1950 },
@@ -44,6 +106,8 @@ const AuctionDetail = () => {
     { category: "Property", platform: 1000, deposit: 14000 },
     { category: "Antiques", platform: 100, deposit: 1500 },
   ];
+  
+  const currentFees = feeStructure.find(f => f.category === auction.category) || feeStructure[1];
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % auction.images.length);
@@ -77,39 +141,44 @@ const AuctionDetail = () => {
             <div>
               <div className="relative bg-card border-2 border-border rounded-md overflow-hidden mb-4">
                 <img
-                  src={auction.images[currentImageIndex]}
+                  src={auction.images?.[currentImageIndex] || "/placeholder.svg"}
                   alt={auction.title}
                   className="w-full h-96 object-cover"
                 />
-                {/* Navigation Arrows */}
-                <button
-                  onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background p-2 rounded-md border-2 border-border"
-                >
-                  ◀
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background p-2 rounded-md border-2 border-border"
-                >
-                  ▶
-                </button>
+                {auction.images && auction.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background p-2 rounded-md border-2 border-border"
+                    >
+                      ◀
+                    </button>
+                    <button
+                      onClick={nextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background p-2 rounded-md border-2 border-border"
+                    >
+                      ▶
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Thumbnails */}
-              <div className="flex gap-2">
-                {auction.images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImageIndex(idx)}
-                    className={`flex-1 border-2 rounded-md overflow-hidden ${
-                      idx === currentImageIndex ? "border-primary" : "border-border"
-                    }`}
-                  >
-                    <img src={img} alt={`View ${idx + 1}`} className="w-full h-20 object-cover" />
-                  </button>
-                ))}
-              </div>
+              {auction.images && auction.images.length > 1 && (
+                <div className="flex gap-2">
+                  {auction.images.map((img: string, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`flex-1 border-2 rounded-md overflow-hidden ${
+                        idx === currentImageIndex ? "border-primary" : "border-border"
+                      }`}
+                    >
+                      <img src={img} alt={`View ${idx + 1}`} className="w-full h-20 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Title & Price Section */}
@@ -127,7 +196,7 @@ const AuctionDetail = () => {
               <div className="space-y-4">
                 <div>
                   <p className="font-bebas text-5xl text-primary tracking-wide">
-                    ₹{auction.basePrice.toLocaleString("en-IN")}
+                    ₹{auction.base_price.toLocaleString("en-IN")}
                   </p>
                   <p className="font-sans text-sm text-muted-foreground uppercase tracking-wide">
                     Base Price
@@ -137,13 +206,13 @@ const AuctionDetail = () => {
                 <div className="flex items-center gap-2 text-foreground/70">
                   <Users className="h-5 w-5" />
                   <span className="font-sans font-medium">
-                    {auction.bidders} participants currently bidding
+                    {auction.bidders_count} participants currently bidding
                   </span>
                 </div>
 
                 {/* Timer */}
                 <div className="bg-secondary border-2 border-border rounded-md p-6">
-                  {auction.isCooldown ? (
+                  {isInCooldown ? (
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-6 w-6 text-destructive mt-1" />
                       <div>
@@ -172,11 +241,11 @@ const AuctionDetail = () => {
                     <div className="flex items-center gap-2">
                       <Clock className="h-5 w-5 text-destructive" />
                       <p className="font-bebas text-3xl text-destructive tracking-wide">
-                        ⏳ {auction.timeRemaining}
+                        ⏳ {timeRemaining}
                       </p>
                     </div>
                     <p className="font-sans text-xs text-foreground/60 uppercase tracking-wide mt-1">
-                      Expires In
+                      {isInCooldown ? "Cooldown Ends In" : "Expires In"}
                     </p>
                   </div>
                 </div>
@@ -185,12 +254,13 @@ const AuctionDetail = () => {
                 <Button
                   variant="hero"
                   className="w-full"
-                  disabled={auction.isCooldown}
+                  onClick={handleAddToCart}
+                  disabled={isInCooldown || !isAuthenticated}
                 >
-                  {auction.isCooldown ? "Bidding Paused" : "Add to Cart"}
+                  {!isAuthenticated ? "Login to Participate" : isInCooldown ? "Bidding Paused" : "Add to Cart"}
                 </Button>
                 <p className="text-xs font-sans text-foreground/60 text-center">
-                  You'll review all fees before final payment
+                  {!isAuthenticated ? "You must be logged in to participate" : "You'll review all fees before final payment"}
                 </p>
               </div>
             </div>
@@ -232,12 +302,12 @@ const AuctionDetail = () => {
                         <div
                           key={i}
                           className={`h-2 w-6 rounded ${
-                            i < auction.conditionRating ? "bg-success" : "bg-muted"
+                            i < (auction.condition_rating || 0) ? "bg-success" : "bg-muted"
                           }`}
                         />
                       ))}
                       <span className="ml-2 font-bebas text-lg">
-                        {auction.conditionRating}/10
+                        {auction.condition_rating || 0}/10
                       </span>
                     </div>
                   </div>
@@ -248,20 +318,37 @@ const AuctionDetail = () => {
             <TabsContent value="specifications" className="mt-6">
               <div className="bg-card border-2 border-border rounded-md p-6">
                 <h3 className="font-courier font-bold text-xl uppercase tracking-wide mb-4">
-                  Vehicle Specifications
+                  Item Specifications
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(auction.specifications).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-3 p-3 bg-secondary rounded">
-                      <CheckCircle className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-sans text-xs text-muted-foreground capitalize">
-                          {key.replace(/([A-Z])/g, " $1")}
-                        </p>
-                        <p className="font-grotesk font-medium">{value}</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-sans text-xs text-muted-foreground">Years Used</p>
+                      <p className="font-grotesk font-medium">{auction.years_used || "N/A"} years</p>
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-sans text-xs text-muted-foreground">Insurance Status</p>
+                      <p className="font-grotesk font-medium">{auction.insurance_status ? "Valid" : "Expired"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-sans text-xs text-muted-foreground">City</p>
+                      <p className="font-grotesk font-medium">{auction.city}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-sans text-xs text-muted-foreground">Status</p>
+                      <p className="font-grotesk font-medium capitalize">{auction.status}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -276,17 +363,17 @@ const AuctionDetail = () => {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="font-sans">Platform Fees:</span>
-                    <span className="font-bebas text-xl">₹{auction.platformFees.toLocaleString("en-IN")}</span>
+                    <span className="font-bebas text-xl">₹{currentFees.platform.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-sans">Deposit Fees:</span>
-                    <span className="font-bebas text-xl">₹{auction.depositFees.toLocaleString("en-IN")}</span>
+                    <span className="font-bebas text-xl">₹{currentFees.deposit.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="h-0.5 bg-border" />
                   <div className="flex justify-between items-center font-bold">
                     <span className="font-grotesk uppercase">Total:</span>
                     <span className="font-bebas text-2xl text-primary">
-                      ₹{(auction.platformFees + auction.depositFees).toLocaleString("en-IN")}
+                      ₹{(currentFees.platform + currentFees.deposit).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
