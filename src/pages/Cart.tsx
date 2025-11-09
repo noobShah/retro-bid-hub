@@ -250,6 +250,9 @@ const Cart = () => {
                       <SelectContent>
                         <SelectItem value="business">Business</SelectItem>
                         <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="charity">Charity</SelectItem>
+                        <SelectItem value="procurement">Procurement</SelectItem>
+                        <SelectItem value="collectibles">Collectibles</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>

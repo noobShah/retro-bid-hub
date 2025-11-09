@@ -20,7 +20,7 @@ const About = () => {
               <h2 className="font-grotesk font-semibold text-2xl mb-4 text-primary">Our Mission</h2>
               <p className="text-foreground/80 leading-relaxed">
                 Auction Grid is a government initiative developed by Hawk Infosys Pvt. Ltd. to bring transparency, 
-                fairness, and accessibility to the auction process across Gujarat. We believe that every citizen 
+                fairness, and accessibility to the auction process across India. We believe that every citizen 
                 deserves equal opportunity to participate in government-approved auctions.
               </p>
             </section>

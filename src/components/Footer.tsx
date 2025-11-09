@@ -19,10 +19,13 @@ export const Footer = () => {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-foreground/80 font-sans">
-              A Government Initiative<br />
-              by Hawk Infosys Pvt. Ltd.
-            </p>
+            <div className="flex items-center gap-3">
+              <img src="/logoo.png" alt="Hawk Logo" className="h-40 w-50" />
+              <p className="text-sm text-foreground/80 font-sans m-0">
+                A Government Initiative<br />
+                by Hawk Infosys Pvt. Ltd.
+              </p>
+            </div>
           </div>
 
           {/* Quick Links */}

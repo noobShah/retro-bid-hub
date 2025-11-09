@@ -33,7 +33,7 @@ const Home = () => {
         <section className="relative py-24 px-4 bg-gradient-to-br from-background to-muted">
           <div className="container mx-auto text-center">
             <h1 className="font-courier font-bold text-5xl md:text-6xl uppercase tracking-wider mb-6 text-foreground">
-              Gujarat Government Auctions
+            Government Auctions
             </h1>
             <p className="font-sans text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
               Fair. Fast. Transparent. Participate in verified government auctions from the comfort of your home.

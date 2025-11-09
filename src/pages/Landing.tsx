@@ -40,10 +40,10 @@ const Landing = () => {
 
         <div className="space-y-4 mb-10">
           <p className="font-grotesk text-2xl md:text-3xl font-medium text-foreground">
-            Government-Approved Auctions
+            Government-Approved Auctions <br/>(for college project purposes only)
           </p>
           <p className="font-sans text-lg md:text-xl text-foreground/80">
-            Across Gujarat
+            Across India
           </p>
         </div>
 

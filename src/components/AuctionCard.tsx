@@ -51,7 +51,12 @@ export const AuctionCard = ({
 
         <div className="flex items-center justify-between mb-2">
           <Badge variant="secondary" className="font-sans text-xs">{city}</Badge>
-          <Badge variant="outline" className="font-sans text-xs">{category}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-sans text-xs">{category}</Badge>
+            {category === "Property" && (
+              <span className="text-xs text-muted-foreground font-sans">Builders & contractors only</span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">

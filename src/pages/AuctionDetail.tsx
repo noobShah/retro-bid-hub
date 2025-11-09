@@ -286,31 +286,7 @@ const AuctionDetail = () => {
                   </div>
                 </div>
 
-                {/* Bidding Section */}
-                {isAuthenticated && !isInCooldown && (
-                  <div className="bg-secondary border-2 border-border rounded-md p-4 space-y-3">
-                    <h3 className="font-grotesk font-semibold uppercase text-sm">Place Your Bid</h3>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        placeholder={`Min: ₹${(currentBid + 1).toLocaleString("en-IN")}`}
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={handlePlaceBid}
-                        disabled={biddingLoading}
-                        className="px-6"
-                      >
-                        {biddingLoading ? "Placing..." : "Bid"}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Your bid must be higher than ₹{currentBid.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                )}
+          
 
                 {/* Add to Cart Button */}
                 <Button
@@ -358,6 +334,13 @@ const AuctionDetail = () => {
                     <p className="font-sans text-sm text-muted-foreground mb-1">Category</p>
                     <p className="font-grotesk font-semibold">{auction.category}</p>
                   </div>
+                    {auction.category === 'Property' && (
+                      <div className="col-span-2">
+                        <div className="mt-4 p-3 bg-secondary border-2 border-border rounded-md text-sm font-sans text-foreground/80">
+                          <strong>Note:</strong> For Property auctions, only registered builders and contractors are allowed to participate. Please ensure you have the required registrations and documents before placing a bid.
+                        </div>
+                      </div>
+                    )}
                   <div>
                     <p className="font-sans text-sm text-muted-foreground mb-1">
                       Condition Rating

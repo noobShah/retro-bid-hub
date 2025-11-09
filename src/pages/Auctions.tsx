@@ -122,6 +122,9 @@ const Auctions = () => {
           <p className="font-sans text-muted-foreground mt-4">
             Explore verified government auctions from across Gujarat
           </p>
+          <p className="font-sans text-sm text-muted-foreground mt-2">
+            Note: For Property category auctions, only registered builders and contractors are permitted to bid. Please ensure you meet the eligibility and registration requirements before participating in Property auctions.
+          </p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
