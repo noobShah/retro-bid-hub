@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const gujaratCities = [
   "Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar",
@@ -21,8 +23,10 @@ const gujaratCities = [
 
 const AdminAddListing = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [expirationDate, setExpirationDate] = useState<Date>();
   const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -31,8 +35,8 @@ const AdminAddListing = () => {
     description: "",
     yearsUsed: "",
     conditionRating: "",
-    insuranceStatus: "active",
-    cooldownPeriod: "",
+    insuranceStatus: true,
+    cooldownPeriod: "24",
     expirationTime: "",
   });
 
@@ -48,7 +52,7 @@ const AdminAddListing = () => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent, isDraft: boolean) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.category || !formData.city || !formData.basePrice) {
@@ -61,8 +65,49 @@ const AdminAddListing = () => {
       return;
     }
 
-    toast.success(isDraft ? "Listing saved as draft!" : "Listing published successfully!");
-    navigate("/admin/listings");
+    if (!user) {
+      toast.error("You must be logged in to create listings");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Combine date and time for expiration
+      const expirationDateTime = new Date(expirationDate);
+      if (formData.expirationTime) {
+        const [hours, minutes] = formData.expirationTime.split(':');
+        expirationDateTime.setHours(parseInt(hours), parseInt(minutes));
+      }
+
+      const { error } = await supabase
+        .from('auctions')
+        .insert([{
+          title: formData.title,
+          category: formData.category as "Two Wheeler" | "Four Wheeler" | "Heavy Vehicle" | "Property" | "Antiques",
+          city: formData.city,
+          base_price: parseFloat(formData.basePrice),
+          current_bid: parseFloat(formData.basePrice),
+          description: formData.description || null,
+          years_used: formData.yearsUsed ? parseInt(formData.yearsUsed) : null,
+          condition_rating: formData.conditionRating ? parseInt(formData.conditionRating) : null,
+          insurance_status: formData.insuranceStatus,
+          cooldown_hours: parseInt(formData.cooldownPeriod),
+          expiration_date: expirationDateTime.toISOString(),
+          images: images,
+          created_by: user.id,
+          status: 'active',
+        }]);
+
+      if (error) throw error;
+
+      toast.success("Listing published successfully!");
+      navigate("/admin/listings");
+    } catch (error: any) {
+      console.error('Error creating listing:', error);
+      toast.error(error.message || "Failed to create listing");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -183,7 +228,7 @@ const AdminAddListing = () => {
 
                 <div>
                   <Label>Insurance Status</Label>
-                  <Select value={formData.insuranceStatus} onValueChange={(value) => setFormData({ ...formData, insuranceStatus: value })}>
+                  <Select value={formData.insuranceStatus ? "active" : "expired"} onValueChange={(value) => setFormData({ ...formData, insuranceStatus: value === "active" })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -314,21 +359,17 @@ const AdminAddListing = () => {
               type="button"
               variant="outline"
               onClick={() => navigate("/admin/listings")}
+              disabled={loading}
             >
               Cancel
             </Button>
             <Button
-              type="button"
-              variant="outline"
-              onClick={(e) => handleSubmit(e, true)}
+              type="submit"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1"
             >
-              Save as Draft
-            </Button>
-            <Button
-              type="button"
-              onClick={(e) => handleSubmit(e, false)}
-            >
-              Publish Listing
+              {loading ? "Publishing..." : "Publish Listing"}
             </Button>
           </div>
         </form>

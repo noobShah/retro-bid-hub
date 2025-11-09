@@ -6,10 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Clock, MapPin, TrendingUp, LogOut, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuctionTimer } from "@/hooks/useAuctionTimer";
+import { useBidding } from "@/hooks/useBidding";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Participation {
   id: string;
@@ -19,10 +32,12 @@ interface Participation {
   status: string;
   joined_at: string;
   auctions: {
+    id: string;
     title: string;
     city: string;
     category: string;
     base_price: number;
+    current_bid: number;
     expiration_date: string;
     status: string;
     images: string[];
@@ -34,6 +49,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [participations, setParticipations] = useState<Participation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [exitingAuctionId, setExitingAuctionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,10 +70,12 @@ const Dashboard = () => {
       .select(`
         *,
         auctions (
+          id,
           title,
           city,
           category,
           base_price,
+          current_bid,
           expiration_date,
           status,
           images
@@ -76,8 +96,132 @@ const Dashboard = () => {
   const wonParticipations = participations.filter(p => p.status === 'won');
   const lostParticipations = participations.filter(p => p.status === 'lost');
 
-  const ParticipationCard = ({ participation }: { participation: Participation }) => {
+  const handleExitBid = async (auctionId: string) => {
+    setExitingAuctionId(auctionId);
+    setShowExitDialog(true);
+  };
+
+  const confirmExit = async () => {
+    if (!exitingAuctionId) return;
+
+    try {
+      const { error } = await supabase
+        .from('participations')
+        .update({ status: 'exited' })
+        .eq('auction_id', exitingAuctionId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success("You have exited the auction. Fees are non-refundable.");
+      fetchParticipations();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to exit auction");
+    } finally {
+      setShowExitDialog(false);
+      setExitingAuctionId(null);
+    }
+  };
+
+  const ActiveParticipationCard = ({ participation }: { participation: Participation }) => {
     const { timeRemaining, isExpired } = useAuctionTimer(participation.auctions.expiration_date);
+    const { bids, currentBid, placeBid, loading: bidLoading } = useBidding(participation.auction_id);
+    const [bidAmount, setBidAmount] = useState(0);
+
+    const userBids = bids.filter(b => b.user_id === user?.id);
+    const highestUserBid = userBids.length > 0 ? Math.max(...userBids.map(b => b.amount)) : 0;
+    const isHighestBidder = highestUserBid === currentBid && currentBid > 0;
+
+    const handleUpBid = async () => {
+      const newBid = currentBid + 500;
+      const success = await placeBid(newBid);
+      if (success) {
+        setBidAmount(newBid);
+      }
+    };
+
+    return (
+      <Card className="border-2">
+        <CardContent className="p-6">
+          <div className="flex gap-4 mb-4">
+            <img 
+              src={participation.auctions.images?.[0] || 'https://images.unsplash.com/photo-1449034446853-66c86144b0ad?w=400'} 
+              alt={participation.auctions.title}
+              className="w-32 h-32 object-cover rounded-md"
+            />
+            <div className="flex-1">
+              <h3 className="font-grotesk font-semibold text-xl mb-2">
+                {participation.auctions.title}
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {participation.auctions.city}
+                </Badge>
+                <Badge variant="outline">{participation.auctions.category}</Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {timeRemaining}
+                </Badge>
+                {isHighestBidder && (
+                  <Badge className="bg-green-600 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Highest Bidder
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-sans text-sm text-muted-foreground">Base Price</p>
+                  <p className="font-bebas text-2xl tracking-wide">
+                    ₹{participation.auctions.base_price.toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-sans text-sm text-muted-foreground">Current Bid</p>
+                  <p className="font-bebas text-2xl tracking-wide text-primary">
+                    ₹{currentBid.toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              onClick={handleUpBid}
+              disabled={bidLoading || isExpired}
+              className="flex-1 font-grotesk uppercase"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Up Bid by ₹500
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => handleExitBid(participation.auction_id)}
+              disabled={bidLoading}
+              className="flex-1 font-grotesk uppercase"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Exit Bid
+            </Button>
+          </div>
+
+          {userBids.length > 0 && (
+            <div className="mt-4 p-3 bg-muted/50 rounded-md">
+              <p className="font-sans text-sm text-muted-foreground mb-1">Your Highest Bid</p>
+              <p className="font-bebas text-xl tracking-wide">
+                ₹{highestUserBid.toLocaleString('en-IN')}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const ParticipationCard = ({ participation }: { participation: Participation }) => {
+    const { timeRemaining } = useAuctionTimer(participation.auctions.expiration_date);
     
     return (
       <Card className="border-2">
@@ -210,7 +354,7 @@ const Dashboard = () => {
 
           <TabsContent value="active" className="space-y-4">
             {activeParticipations.length > 0 ? (
-              activeParticipations.map(p => <ParticipationCard key={p.id} participation={p} />)
+              activeParticipations.map(p => <ActiveParticipationCard key={p.id} participation={p} />)
             ) : (
               <Card className="border-2">
                 <CardContent className="p-12 text-center">
@@ -253,6 +397,34 @@ const Dashboard = () => {
       </main>
 
       <Footer />
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Exit Auction Bid?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong className="text-destructive">Warning: This action cannot be undone.</strong>
+              <br /><br />
+              By exiting this auction bid, you acknowledge that:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Your platform fee and deposit are <strong>non-refundable</strong></li>
+                <li>You will no longer be able to bid on this auction</li>
+                <li>You cannot rejoin this auction after exiting</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmExit} className="bg-destructive hover:bg-destructive/90">
+              Exit & Forfeit Fees
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

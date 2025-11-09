@@ -1,57 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Plus, Search, Eye, Pencil, Trash2, Users } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const AdminListings = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCity, setFilterCity] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const listings = [
-    {
-      id: "1",
-      title: "Maruti Swift VXI 2018",
-      city: "Ahmedabad",
-      category: "Four Wheeler",
-      status: "active",
-      bidders: 23,
-      basePrice: 120000,
-    },
-    {
-      id: "2",
-      title: "Plot Sector-21 Surat",
-      city: "Surat",
-      category: "Property",
-      status: "active",
-      bidders: 31,
-      basePrice: 2500000,
-    },
-    {
-      id: "3",
-      title: "Royal Enfield Bullet 350",
-      city: "Vadodara",
-      category: "Two Wheeler",
-      status: "expired",
-      bidders: 18,
-      basePrice: 85000,
-    },
-    {
-      id: "4",
-      title: "Honda City 2019",
-      city: "Rajkot",
-      category: "Four Wheeler",
-      status: "cooldown",
-      bidders: 15,
-      basePrice: 450000,
-    },
-  ];
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('auctions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching listings:', error);
+      toast.error("Failed to fetch listings");
+    } else {
+      setListings(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async (id: string, cooldownHours: number, createdAt: string) => {
+    const hoursSinceCreation = (new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceCreation > cooldownHours) {
+      toast.error("Cannot delete auction - cooldown period has passed and auction is live");
+      return;
+    }
+
+    if (confirm("Are you sure you want to delete this listing?")) {
+      const { error } = await supabase
+        .from('auctions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast.error("Failed to delete listing");
+      } else {
+        toast.success("Listing deleted successfully");
+        fetchListings();
+      }
+    }
+  };
 
   const filteredListings = listings.filter((listing) => {
     const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -61,21 +71,23 @@ const AdminListings = () => {
   });
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-600">Active</Badge>;
-      case "cooldown":
-        return <Badge className="bg-yellow-600">Cooldown</Badge>;
-      case "expired":
-        return <Badge variant="destructive">Expired</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      active: "default",
+      cooldown: "secondary",
+      expired: "destructive",
+    };
+    return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
+  };
+
+  const canModify = (createdAt: string, cooldownHours: number) => {
+    const hoursSinceCreation = (new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+    return hoursSinceCreation <= cooldownHours;
   };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-courier font-bold text-4xl uppercase tracking-wider mb-2">
@@ -83,110 +95,132 @@ const AdminListings = () => {
             </h1>
             <div className="h-0.5 w-48 bg-accent" />
           </div>
-          <Button asChild>
-            <Link to="/admin/add-listing" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add New
-            </Link>
+          <Button onClick={() => navigate("/admin/add-listing")} className="font-grotesk uppercase">
+            <Plus className="h-4 w-4 mr-2" />
+            Add New
           </Button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search listings..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={filterCity} onValueChange={setFilterCity}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Filter by City" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
-              <SelectItem value="Surat">Surat</SelectItem>
-              <SelectItem value="Vadodara">Vadodara</SelectItem>
-              <SelectItem value="Rajkot">Rajkot</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Filter by Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Two Wheeler">Two Wheeler</SelectItem>
-              <SelectItem value="Four Wheeler">Four Wheeler</SelectItem>
-              <SelectItem value="Property">Property</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Card className="border-2">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                placeholder="Search listings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Select value={filterCity} onValueChange={setFilterCity}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by City" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
+                  <SelectItem value="Surat">Surat</SelectItem>
+                  <SelectItem value="Vadodara">Vadodara</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Two Wheeler">Two Wheeler</SelectItem>
+                  <SelectItem value="Four Wheeler">Four Wheeler</SelectItem>
+                  <SelectItem value="Heavy Vehicle">Heavy Vehicle</SelectItem>
+                  <SelectItem value="Property">Property</SelectItem>
+                  <SelectItem value="Antiques">Antiques</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Table */}
-        <div className="border-2 border-border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-grotesk">Title</TableHead>
-                <TableHead className="font-grotesk">City</TableHead>
-                <TableHead className="font-grotesk">Category</TableHead>
-                <TableHead className="font-grotesk">Base Price</TableHead>
-                <TableHead className="font-grotesk">Status</TableHead>
-                <TableHead className="font-grotesk">Bidders</TableHead>
-                <TableHead className="font-grotesk text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredListings.map((listing) => (
-                <TableRow key={listing.id}>
-                  <TableCell className="font-medium">{listing.title}</TableCell>
-                  <TableCell>{listing.city}</TableCell>
-                  <TableCell>{listing.category}</TableCell>
-                  <TableCell>₹{listing.basePrice.toLocaleString("en-IN")}</TableCell>
-                  <TableCell>{getStatusBadge(listing.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      {listing.bidders}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Users className="h-4 w-4 mr-2" />
-                          View Participants ({listing.bidders})
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {/* Listings Table */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="font-grotesk text-xl">All Listings ({filteredListings.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-center py-8">Loading...</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Base Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cooldown</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredListings.map((listing) => {
+                    const modifiable = canModify(listing.created_at, listing.cooldown_hours);
+                    return (
+                      <TableRow key={listing.id}>
+                        <TableCell className="font-medium">{listing.title}</TableCell>
+                        <TableCell>{listing.city}</TableCell>
+                        <TableCell>{listing.category}</TableCell>
+                        <TableCell>₹{listing.base_price.toLocaleString('en-IN')}</TableCell>
+                        <TableCell>{getStatusBadge(listing.status)}</TableCell>
+                        <TableCell>
+                          {modifiable ? (
+                            <Badge variant="secondary">{listing.cooldown_hours}h</Badge>
+                          ) : (
+                            <Badge variant="destructive">Live</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/auction/${listing.id}`)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              {modifiable && (
+                                <>
+                                  <DropdownMenuItem onClick={() => navigate(`/admin/edit-listing/${listing.id}`)}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDelete(listing.id, listing.cooldown_hours, listing.created_at)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {!modifiable && (
+                                <DropdownMenuItem disabled>
+                                  <span className="text-xs text-muted-foreground">
+                                    Cannot modify live auction
+                                  </span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );

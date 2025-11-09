@@ -143,29 +143,38 @@ export type Database = {
       }
       participations: {
         Row: {
+          agreement_document: string | null
           auction_id: string
+          business_proof: string | null
           deposit_fee: number
           id: string
           joined_at: string | null
           platform_fee: number
+          reason_of_interest: string | null
           status: Database["public"]["Enums"]["participation_status"] | null
           user_id: string
         }
         Insert: {
+          agreement_document?: string | null
           auction_id: string
+          business_proof?: string | null
           deposit_fee: number
           id?: string
           joined_at?: string | null
           platform_fee: number
+          reason_of_interest?: string | null
           status?: Database["public"]["Enums"]["participation_status"] | null
           user_id: string
         }
         Update: {
+          agreement_document?: string | null
           auction_id?: string
+          business_proof?: string | null
           deposit_fee?: number
           id?: string
           joined_at?: string | null
           platform_fee?: number
+          reason_of_interest?: string | null
           status?: Database["public"]["Enums"]["participation_status"] | null
           user_id?: string
         }

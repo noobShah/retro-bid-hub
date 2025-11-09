@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -28,6 +31,11 @@ const Cart = () => {
     readTerms: false,
     understandPayment: false,
     acceptRefund: false,
+  });
+  const [checkoutData, setCheckoutData] = useState({
+    agreementDoc: "",
+    businessProof: "",
+    reasonOfInterest: "",
   });
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +76,11 @@ const Cart = () => {
       return;
     }
 
+    if (!checkoutData.agreementDoc || !checkoutData.businessProof || !checkoutData.reasonOfInterest) {
+      toast.error("Please fill in all checkout fields");
+      return;
+    }
+
     if (!user) return;
 
     setLoading(true);
@@ -84,7 +97,10 @@ const Cart = () => {
             auction_id: item.id,
             platform_fee: fees.platform,
             deposit_fee: fees.deposit,
-            status: "active"
+            status: "active",
+            agreement_document: checkoutData.agreementDoc,
+            business_proof: checkoutData.businessProof,
+            reason_of_interest: checkoutData.reasonOfInterest,
           });
 
         if (error) throw error;
@@ -195,6 +211,49 @@ const Cart = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Checkout Form */}
+              <div className="bg-card border-2 border-border rounded-md p-6">
+                <h2 className="font-grotesk text-xl font-semibold mb-4">Participation Details</h2>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="agreementDoc">Auction Participant Agreement Document *</Label>
+                    <Input
+                      id="agreementDoc"
+                      placeholder="Document number or reference"
+                      value={checkoutData.agreementDoc}
+                      onChange={(e) => setCheckoutData({...checkoutData, agreementDoc: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="businessProof">Business/Job Proof *</Label>
+                    <Input
+                      id="businessProof"
+                      placeholder="Company name or employment details"
+                      value={checkoutData.businessProof}
+                      onChange={(e) => setCheckoutData({...checkoutData, businessProof: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="reasonOfInterest">Reason of Interest *</Label>
+                    <Select 
+                      value={checkoutData.reasonOfInterest} 
+                      onValueChange={(value) => setCheckoutData({...checkoutData, reasonOfInterest: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reason" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
