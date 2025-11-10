@@ -219,7 +219,7 @@ const Cart = () => {
                 <h2 className="font-grotesk text-xl font-semibold mb-4">Participation Details</h2>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="agreementDoc">Auction Participant Agreement Document *</Label>
+                    <Label htmlFor="agreementDoc">Verified Aadhaar Number *</Label>
                     <Input
                       id="agreementDoc"
                       placeholder="Document number or reference"
